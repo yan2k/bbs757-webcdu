@@ -70,6 +70,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "bbs757-webcdu"
+version = "0.2.0"
+dependencies = [
+ "axum",
+ "futures-util",
+ "libloading",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -689,18 +701,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487"
 dependencies = [
  "wit-bindgen",
-]
-
-[[package]]
-name = "webcdu"
-version = "0.2.0"
-dependencies = [
- "axum",
- "futures-util",
- "libloading",
- "serde",
- "serde_json",
- "tokio",
 ]
 
 [[package]]

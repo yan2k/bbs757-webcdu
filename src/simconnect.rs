@@ -40,7 +40,7 @@ fn dll_path() -> std::io::Result<PathBuf> {
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir);
-    let dir = base.join("webcdu");
+    let dir = base.join("bbs757-webcdu");
     std::fs::create_dir_all(&dir)?;
     let p = dir.join("SimConnect.dll");
     let same = std::fs::read(&p).map(|b| b == DLL_BYTES).unwrap_or(false);
@@ -95,7 +95,7 @@ struct Conn {
 impl Conn {
     fn open(&mut self) {
         let mut h: Handle = std::ptr::null_mut();
-        let name = c"webcdu";
+        let name = c"bbs757-webcdu";
         let hr = unsafe {
             (self.api.open)(
                 &mut h,

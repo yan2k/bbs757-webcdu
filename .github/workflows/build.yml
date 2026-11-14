@@ -40,8 +40,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: webcdu-windows-x64
-          path: target/x86_64-pc-windows-gnu/release/webcdu.exe
+          name: bbs757-webcdu-windows-x64
+          path: target/x86_64-pc-windows-gnu/release/bbs757-webcdu.exe
           if-no-files-found: error
 
   release:
@@ -53,8 +53,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: webcdu-windows-x64
+          name: bbs757-webcdu-windows-x64
       - uses: softprops/action-gh-release@v2
         with:
-          files: webcdu.exe
+          files: bbs757-webcdu.exe
           generate_release_notes: true

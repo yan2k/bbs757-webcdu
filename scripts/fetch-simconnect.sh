@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fetch SimConnect.dll into vendor/ (it's embedded into webcdu.exe at build time).
+# Fetch SimConnect.dll into vendor/ (it's embedded into bbs757-webcdu.exe at build time).
 #
 # Source: the "SimConnect" Python package on PyPI, which redistributes the MSFS SDK's
 # SimConnect.dll. Both the wheel and the DLL are pinned by SHA-256.

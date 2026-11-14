@@ -1,8 +1,8 @@
 [package]
-name = "webcdu"
+name = "bbs757-webcdu"
 version = "0.2.0"
 edition = "2021"
-description = "Web CDU for MSFS airliners (BlueBird 757): iPad/browser remote with keyboard input"
+description = "Web CDU for the BlueBird 757 in MSFS: full CDU with keyboard input on any tablet, phone or browser"
 license = "PolyForm-Noncommercial-1.0.0"
 build = "build.rs"
 

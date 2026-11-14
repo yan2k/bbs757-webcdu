@@ -324,7 +324,7 @@ async fn main() {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(DEFAULT_WEB_PORT);
-    println!("webcdu v{}", env!("CARGO_PKG_VERSION"));
+    println!("bbs757-webcdu v{}", env!("CARGO_PKG_VERSION"));
 
     let sim = Arc::new(AtomicBool::new(false));
     let (sc_tx, sc_rx) = std_mpsc::channel();
