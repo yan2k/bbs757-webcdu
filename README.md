@@ -3,8 +3,12 @@
 A web CDU for the **BlueBird Simulations 757** in Microsoft Flight Simulator. You get the full
 CDU (live screen and every key) on a tablet, phone or any browser.
 
+![Route, performance and progress pages on the web CDU](docs/screenshots/pages.png)
+
+<sub>KATL → KJFK via PLMMR3 and CAMRN5, entered entirely from the web CDU.</sub>
+
 It's a single `bbs757-webcdu.exe`. The web page, fonts and `SimConnect.dll` are built in,
-and there's nothing else to install.
+and there's nothing else to install. Grab it from [Releases](../../releases).
 
 ## Using it
 
