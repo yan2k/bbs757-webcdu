@@ -19,8 +19,8 @@ Left: the route edit waiting to be executed, with EXEC lit.</sub>
 
 1. Download `bbs757-webcdu.exe` from [Releases](../../releases).
 2. Close MobiFlight if it's running, because both use port 8320.
-3. Start `bbs757-webcdu.exe` on the sim PC, then load the 757. A console window opens; keep
-   it open while you fly.
+3. Start `bbs757-webcdu.exe` on the sim PC, then load the 757. A console window opens; **keep
+   it open while you fly**.
 4. On your tablet, phone or second PC, open the address shown in the window.
    **Add to Home Screen** in the browser menu gets it full-screen.
 
