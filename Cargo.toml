@@ -3,6 +3,7 @@ name = "webcdu"
 version = "0.2.0"
 edition = "2021"
 description = "Web CDU for MSFS airliners (BlueBird 757): iPad/browser remote with keyboard input"
+license = "PolyForm-Noncommercial-1.0.0"
 build = "build.rs"
 
 [dependencies]

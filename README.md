@@ -69,3 +69,10 @@ instead of the built-in one.
 
 - [B612](https://github.com/polarsys/b612) fonts, SIL Open Font License 1.1 (`assets/fonts/OFL.txt`).
 - The MobiFlight project's open-source CDU websocket hub, for showing the protocol.
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE). You're free to use, modify and share webcdu for any
+noncommercial purpose. Forks are welcome. Streaming or recording while you use it is
+explicitly fine, including monetized streams. Selling it, or putting it into a commercial
+product or service, is not allowed without permission.
