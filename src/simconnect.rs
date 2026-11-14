@@ -1,6 +1,8 @@
-//! Minimal SimConnect client (loaded dynamically): just enough to write L-vars.
+//! Minimal SimConnect client (loaded dynamically): writes the CDU key L-vars and watches the
+//! EXEC lights.
 //! Runs on its own thread; other code sends `(lvar, value)` over a channel.
 
+use serde::Serialize;
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CString};
 use std::path::PathBuf;
@@ -10,6 +12,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use libloading::{Library, Symbol};
+use tokio::sync::watch;
 
 type Handle = *mut c_void;
 type FnOpen =
@@ -19,12 +22,43 @@ type FnAddDef =
     unsafe extern "system" fn(Handle, u32, *const c_char, *const c_char, u32, f32, u32) -> i32;
 type FnSetData = unsafe extern "system" fn(Handle, u32, u32, u32, u32, u32, *const c_void) -> i32;
 type FnNextDispatch = unsafe extern "system" fn(Handle, *mut *const u32, *mut u32) -> i32;
+type FnRequestData =
+    unsafe extern "system" fn(Handle, u32, u32, u32, u32, u32, u32, u32, u32) -> i32;
 
 const RECV_EXCEPTION: u32 = 1;
 const RECV_QUIT: u32 = 3;
+const RECV_SIMOBJECT_DATA: u32 = 8;
 const DATATYPE_FLOAT64: u32 = 4;
 const OBJECT_ID_USER: u32 = 0;
 const UNUSED: u32 = 0xFFFF_FFFF;
+const PERIOD_SIM_FRAME: u32 = 3;
+const DATA_REQUEST_FLAG_CHANGED: u32 = 1;
+
+/// Data definition / request ids for the light watcher (key writes use small ids from 1 up).
+const LIGHTS_DEF: u32 = 0x1000;
+const LIGHTS_REQ: u32 = 1;
+
+/// The 757's cockpit model lights EXEC from these (BBS_752_BASE_INTERIOR.xml).
+/// (Don't add `A:CIRCUIT ON:n` here: SimConnect rejects it as an unknown name.)
+const LIGHT_VARS: &[(&str, &str)] = &[
+    ("L:FMC_EXEC_ACTIVE_1", "number"),
+    ("L:FMC_EXEC_ACTIVE_2", "number"),
+];
+
+#[derive(Clone, Copy, Default, PartialEq, Eq, Serialize)]
+pub struct CduLights {
+    pub exec: bool,
+}
+
+/// Captain, F/O.
+pub type Lights = [CduLights; 2];
+
+fn decode_lights(v: &[f64]) -> Lights {
+    [
+        CduLights { exec: v[0] != 0.0 },
+        CduLights { exec: v[1] != 0.0 },
+    ]
+}
 
 /// The SimConnect.dll is embedded so the exe is self-contained.
 static DLL_BYTES: &[u8] = include_bytes!("../vendor/SimConnect.dll");
@@ -57,6 +91,7 @@ struct Api {
     add_def: Symbol<'static, FnAddDef>,
     set_data: Symbol<'static, FnSetData>,
     next_dispatch: Symbol<'static, FnNextDispatch>,
+    request_data: Symbol<'static, FnRequestData>,
 }
 
 impl Api {
@@ -80,6 +115,9 @@ impl Api {
                 next_dispatch: lib
                     .get(b"SimConnect_GetNextDispatch\0")
                     .map_err(|e| e.to_string())?,
+                request_data: lib
+                    .get(b"SimConnect_RequestDataOnSimObject\0")
+                    .map_err(|e| e.to_string())?,
             })
         }
     }
@@ -90,9 +128,53 @@ struct Conn {
     h: Handle,
     defs: HashMap<String, u32>,
     connected: Arc<AtomicBool>,
+    lights: watch::Sender<Lights>,
 }
 
 impl Conn {
+    fn set_lights(&self, new: Lights) {
+        self.lights.send_if_modified(|cur| {
+            let changed = *cur != new;
+            *cur = new;
+            changed
+        });
+    }
+
+    /// Ask the sim to push the EXEC light variables whenever one of them changes.
+    fn watch_lights(&mut self) {
+        for (name, unit) in LIGHT_VARS {
+            let name = CString::new(*name).unwrap();
+            let unit = CString::new(*unit).unwrap();
+            unsafe {
+                (self.api.add_def)(
+                    self.h,
+                    LIGHTS_DEF,
+                    name.as_ptr(),
+                    unit.as_ptr(),
+                    DATATYPE_FLOAT64,
+                    0.0,
+                    UNUSED,
+                )
+            };
+        }
+        let hr = unsafe {
+            (self.api.request_data)(
+                self.h,
+                LIGHTS_REQ,
+                LIGHTS_DEF,
+                OBJECT_ID_USER,
+                PERIOD_SIM_FRAME,
+                DATA_REQUEST_FLAG_CHANGED,
+                0,
+                0,
+                0,
+            )
+        };
+        if hr != 0 {
+            println!("cannot watch CDU lights ({:#x})", hr as u32);
+        }
+    }
+
     fn open(&mut self) {
         let mut h: Handle = std::ptr::null_mut();
         let name = c"bbs757-webcdu";
@@ -111,6 +193,7 @@ impl Conn {
             self.defs.clear();
             self.connected.store(true, Ordering::Relaxed);
             println!("SimConnect connected");
+            self.watch_lights();
         }
     }
 
@@ -120,6 +203,7 @@ impl Conn {
         }
         self.h = std::ptr::null_mut();
         self.defs.clear();
+        self.set_lights(Lights::default());
     }
 
     fn drain(&mut self) {
@@ -139,6 +223,23 @@ impl Conn {
             if id == RECV_EXCEPTION && n >= 24 {
                 let (exc, send_id) = unsafe { (*p.add(3), *p.add(4)) };
                 println!("SimConnect exception {exc} (send id {send_id})");
+            }
+            // SIMCONNECT_RECV_SIMOBJECT_DATA: header, dwRequestID, dwObjectID, dwDefineID,
+            // dwFlags, dwentrynumber, dwoutof, dwDefineCount, then the data at byte 40.
+            const DATA_AT: usize = 40;
+            let need = DATA_AT + LIGHT_VARS.len() * 8;
+            if id == RECV_SIMOBJECT_DATA && unsafe { *p.add(3) } == LIGHTS_REQ {
+                if (n as usize) < need {
+                    println!("CDU light data too short ({n} bytes) - ignoring");
+                    continue;
+                }
+                let base = p as *const u8;
+                let v: Vec<f64> = (0..LIGHT_VARS.len())
+                    .map(|i| unsafe {
+                        std::ptr::read_unaligned(base.add(DATA_AT + i * 8) as *const f64)
+                    })
+                    .collect();
+                self.set_lights(decode_lights(&v));
             }
         }
     }
@@ -196,7 +297,7 @@ impl Conn {
 
 /// Blocking loop: (re)connects every 3 s while the sim is down, applies L-var writes,
 /// drains SimConnect messages.
-pub fn run(rx: Receiver<(String, f64)>, connected: Arc<AtomicBool>) {
+pub fn run(rx: Receiver<(String, f64)>, connected: Arc<AtomicBool>, lights: watch::Sender<Lights>) {
     let api = match Api::load() {
         Ok(a) => a,
         Err(e) => {
@@ -209,6 +310,7 @@ pub fn run(rx: Receiver<(String, f64)>, connected: Arc<AtomicBool>) {
         h: std::ptr::null_mut(),
         defs: HashMap::new(),
         connected,
+        lights,
     };
     let mut last_try = Instant::now() - Duration::from_secs(10);
     loop {

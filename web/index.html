@@ -66,7 +66,11 @@
     background: #3a3e42; }
   button.k.alpha { font-size: 3.6cqw; }
   button.k.lsk::after { content: ""; display: block; width: 60%; height: 0.6cqw; margin: auto; background: #bbb; }
-  button.k.exec { position: relative; }
+  /* EXEC key light bar under the label (lit when there's a modification to execute) */
+  button.k.exec { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9cqw; }
+  button.k.exec::after { content: ""; display: block; width: 62%; height: 1cqw; border-radius: 0.3cqw;
+    background: #3b3a33; box-shadow: inset 0 0.15cqw 0.2cqw #0008; }
+  button.k.exec.lit::after { background: #fff3c9; box-shadow: 0 0 1.6cqw 0.3cqw #ffe7a066, 0 0 0.5cqw #fff8; }
   .blank { visibility: hidden; }
 
   .fn { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.6cqw; height: 18cqw; }
@@ -150,12 +154,17 @@ try { side = +(new URLSearchParams(location.search).get("side") || localStorage.
 if (side !== 2) side = 1;
 const screens = {};
 let aircraft = [], ws = null, wsOk = false;
+let lights = [{}, {}];   // [CAPT, F/O] -> {exec}
+function drawLights() {
+  const l = (wsOk && lights[side - 1]) || {};
+  btn.EXEC.classList.toggle("lit", !!l.exec);
+}
 
 function setSide(s) {
   side = s;
   try { localStorage.setItem("cdu-side", String(s)); } catch (e) {}
   document.querySelectorAll(".seat button").forEach(b => b.classList.toggle("on", +b.dataset.side === s));
-  draw(); dots();
+  draw(); dots(); drawLights();
 }
 document.querySelectorAll(".seat button").forEach(b => b.addEventListener("click", () => setSide(+b.dataset.side)));
 
@@ -183,10 +192,11 @@ function dots() {
 function connect() {
   ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
   ws.onopen = () => { wsOk = true; dots(); };
-  ws.onclose = () => { wsOk = false; aircraft = []; dots(); draw(); setTimeout(connect, 1500); };
+  ws.onclose = () => { wsOk = false; aircraft = []; dots(); draw(); drawLights(); setTimeout(connect, 1500); };
   ws.onmessage = ev => {
     const m = JSON.parse(ev.data);
     if (m.t === "display") { screens[m.side] = m.data; if (m.side === side) draw(); }
+    else if (m.t === "lights") { lights = m.cdu; drawLights(); }
     else if (m.t === "status") {
       aircraft = m.aircraft; document.getElementById("d-sim").classList.toggle("ok", m.sim);
       dots(); draw();

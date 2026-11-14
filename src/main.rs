@@ -24,7 +24,7 @@ use axum::routing::get;
 use axum::Router;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
-use tokio::sync::{broadcast, mpsc, Notify};
+use tokio::sync::{broadcast, mpsc, watch, Notify};
 use tokio::time::{sleep, sleep_until, timeout, Instant};
 
 const AIRCRAFT_ADDR: &str = "127.0.0.1:8320";
@@ -135,6 +135,7 @@ struct Hub {
     tx: broadcast::Sender<Arc<str>>,
     screens: Mutex<BTreeMap<u8, Arc<str>>>,
     aircraft: Mutex<BTreeMap<u8, usize>>, // side -> open connections
+    lights: watch::Receiver<simconnect::Lights>,
 }
 
 impl Hub {
@@ -150,6 +151,18 @@ impl Hub {
         serde_json::json!({"t": "status", "aircraft": ac, "sim": self.sim.load(Ordering::Relaxed)})
             .to_string()
             .into()
+    }
+    fn lights(&self) -> Arc<str> {
+        let l = *self.lights.borrow();
+        serde_json::json!({"t": "lights", "cdu": l})
+            .to_string()
+            .into()
+    }
+    /// Everything a freshly connected (or lagging) page needs.
+    fn snapshot(&self) -> Vec<Arc<str>> {
+        let mut v = vec![self.status(), self.lights()];
+        v.extend(self.screens.lock().unwrap().values().cloned());
+        v
     }
     fn publish(&self, m: Arc<str>) {
         let _ = self.tx.send(m);
@@ -230,9 +243,7 @@ async fn browser_ws(ws: WebSocketUpgrade, State(hub): State<AppState>) -> impl I
 async fn browser_conn(socket: WebSocket, hub: AppState) {
     let (mut sink, mut stream) = socket.split();
     let mut rx = hub.tx.subscribe();
-    let initial: Vec<Arc<str>> = std::iter::once(hub.status())
-        .chain(hub.screens.lock().unwrap().values().cloned())
-        .collect();
+    let initial = hub.snapshot();
 
     let out_hub = hub.clone();
     let mut out = tokio::spawn(async move {
@@ -246,9 +257,7 @@ async fn browser_conn(socket: WebSocket, hub: AppState) {
                     Ok(m) => sink.send(Message::Text((&*m).into())).await?,
                     Err(broadcast::error::RecvError::Lagged(_)) => {
                         // fell behind: just resend the current state
-                        let now: Vec<Arc<str>> = std::iter::once(out_hub.status())
-                            .chain(out_hub.screens.lock().unwrap().values().cloned()).collect();
-                        for m in now { sink.send(Message::Text((&*m).into())).await?; }
+                        for m in out_hub.snapshot() { sink.send(Message::Text((&*m).into())).await?; }
                     }
                     Err(broadcast::error::RecvError::Closed) => break,
                 },
@@ -328,9 +337,10 @@ async fn main() {
 
     let sim = Arc::new(AtomicBool::new(false));
     let (sc_tx, sc_rx) = std_mpsc::channel();
+    let (lights_tx, lights_rx) = watch::channel(simconnect::Lights::default());
     {
         let sim = sim.clone();
-        std::thread::spawn(move || simconnect::run(sc_rx, sim));
+        std::thread::spawn(move || simconnect::run(sc_rx, sim, lights_tx));
     }
 
     let keys = Arc::new(Keys {
@@ -345,7 +355,19 @@ async fn main() {
         tx,
         screens: Mutex::default(),
         aircraft: Mutex::default(),
+        lights: lights_rx,
     });
+
+    // push EXEC / annunciator changes to pages
+    {
+        let hub = hub.clone();
+        let mut rx = hub.lights.clone();
+        tokio::spawn(async move {
+            while rx.changed().await.is_ok() {
+                hub.publish(hub.lights());
+            }
+        });
+    }
 
     // push status changes (e.g. sim connect/disconnect) to pages
     {
