@@ -37,15 +37,6 @@ If **CDU** is green but **sim** is red, the screen updates but key presses go no
   per CDU, with a minimum hold of 80 ms. The 757 only registers one held key per frame, so
   presses that overlap would be dropped.
 
-## Building
-
-See [`.github/workflows/build.yml`](.github/workflows/build.yml). Pushing a `v*` tag publishes
-a GitHub release with the exe.
-
-`SimConnect.dll` isn't committed to this repo. `scripts/fetch-simconnect.sh` downloads it
-before the build. If a `SimConnect.dll` sits next to `bbs757-webcdu.exe`, that copy is used
-instead of the built-in one.
-
 ## Credits
 
 - [B612](https://github.com/polarsys/b612) fonts, SIL Open Font License 1.1 (`assets/fonts/OFL.txt`).
