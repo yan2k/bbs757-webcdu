@@ -13,11 +13,15 @@ Left: the route edit waiting to be executed, with EXEC lit.</sub>
 - Full CDU: the screen, every key, and the EXEC light
 - Captain and First Officer CDUs, switchable at the top of the page
 - Works in any modern browser on the same network, with no app to install on the tablet
-- One small `.exe` on the sim PC with everything built in
+- Unzip and run on the sim PC, nothing to install
 
 ## Getting started
 
-1. Download `bbs757-webcdu.exe` from [Releases](../../releases).
+1. Download the zip from [Releases](../../releases) and unzip it anywhere. Keep
+   `bbs757-webcdu.exe` and `SimConnect.dll` in the same folder.
+   (Prefer a single file? `bbs757-webcdu-<version>-aio.exe` has `SimConnect.dll` built in.
+   Some virus scanners flag it because it unpacks the DLL at startup; the zip version
+   avoids that.)
 2. Close MobiFlight if it's running, because both use port 8320.
 3. Start `bbs757-webcdu.exe` on the sim PC, then load the 757. A console window opens; **keep
    it open while you fly**.

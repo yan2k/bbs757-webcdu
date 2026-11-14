@@ -1,10 +1,14 @@
 [package]
 name = "bbs757-webcdu"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 description = "Web CDU for the BlueBird 757 in MSFS: the full CDU on any tablet, phone or browser"
 license = "PolyForm-Noncommercial-1.0.0"
 build = "build.rs"
+
+[features]
+# Build the single-file "aio" exe with SimConnect.dll inside (needs vendor/SimConnect.dll).
+embed-simconnect = []
 
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }
@@ -19,3 +23,6 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+
+[build-dependencies]
+embed-resource = "3.0.12"

@@ -60,17 +60,31 @@ fn decode_lights(v: &[f64]) -> Lights {
     ]
 }
 
-/// The SimConnect.dll is embedded so the exe is self-contained.
-static DLL_BYTES: &[u8] = include_bytes!("../vendor/SimConnect.dll");
-
-fn dll_path() -> std::io::Result<PathBuf> {
-    // Prefer a SimConnect.dll next to the exe (lets you drop in a newer SDK one).
-    if let Ok(exe) = std::env::current_exe() {
-        let p = exe.with_file_name("SimConnect.dll");
-        if p.is_file() {
-            return Ok(p);
-        }
+/// Where to load SimConnect.dll from: next to the exe first (the zip release ships it
+/// there). The "aio" build (feature `embed-simconnect`) also carries the DLL inside the exe
+/// and unpacks it to %LOCALAPPDATA% when there's none next to it.
+fn dll_path() -> Result<PathBuf, String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let p = exe.with_file_name("SimConnect.dll");
+    if p.is_file() {
+        return Ok(p);
     }
+    #[cfg(feature = "embed-simconnect")]
+    {
+        return unpack_embedded_dll().map_err(|e| format!("cannot unpack SimConnect.dll: {e}"));
+    }
+    #[allow(unreachable_code)]
+    Err(format!(
+        "SimConnect.dll not found next to the exe ({}).\n\
+         Keep both files from the zip in the same folder. Without it the screen still \
+         shows, but key presses and the EXEC light won't work.",
+        p.display()
+    ))
+}
+
+#[cfg(feature = "embed-simconnect")]
+fn unpack_embedded_dll() -> std::io::Result<PathBuf> {
+    static DLL_BYTES: &[u8] = include_bytes!("../vendor/SimConnect.dll");
     let base = std::env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir);
@@ -96,7 +110,7 @@ struct Api {
 
 impl Api {
     fn load() -> Result<Api, String> {
-        let path = dll_path().map_err(|e| format!("cannot unpack SimConnect.dll: {e}"))?;
+        let path = dll_path()?;
         let lib: &'static Library = Box::leak(Box::new(
             unsafe { Library::new(&path) }
                 .map_err(|e| format!("cannot load {}: {e}", path.display()))?,

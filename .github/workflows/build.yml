@@ -33,15 +33,19 @@ jobs:
         run: cargo fmt --check
 
       - name: Clippy
-        run: cargo clippy --locked --target x86_64-pc-windows-gnu -- -D warnings
+        run: |
+          cargo clippy --locked --target x86_64-pc-windows-gnu -- -D warnings
+          cargo clippy --locked --target x86_64-pc-windows-gnu --features embed-simconnect -- -D warnings
 
-      - name: Build
-        run: cargo build --release --locked --target x86_64-pc-windows-gnu
+      - name: Build zip and aio exe
+        run: scripts/package.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: bbs757-webcdu-windows-x64
-          path: target/x86_64-pc-windows-gnu/release/bbs757-webcdu.exe
+          path: |
+            dist/*.zip
+            dist/*-aio.exe
           if-no-files-found: error
 
   release:
@@ -56,5 +60,7 @@ jobs:
           name: bbs757-webcdu-windows-x64
       - uses: softprops/action-gh-release@v2
         with:
-          files: bbs757-webcdu.exe
+          files: |
+            *.zip
+            *-aio.exe
           generate_release_notes: true
