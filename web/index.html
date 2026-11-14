@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="757 CDU">
+<meta name="theme-color" content="#000000">
+<title>757 CDU</title>
+<style>
+  @font-face { font-family: "B612 Mono"; src: url(/fonts/B612Mono-Regular.ttf) format("truetype"); font-weight: 400; font-display: block; }
+  @font-face { font-family: "B612"; src: url(/fonts/B612-Bold.ttf) format("truetype"); font-weight: 700; font-display: block; }
+  :root {
+    --bezel: #2b2e31; --bezel-hi: #3a3e42; --key: #1b1d1f; --key-hi: #2c2f32; --key-text: #e8e8e8;
+    --screen-bg: #050806;
+    --w: #f2f2f2; --c: #3fd6ff; --g: #3dff6e; --m: #ff5cf0; --a: #ffb02e;
+    --r: #ff4a4a; --y: #ffe94a; --o: #4d8cff; --e: #8a8a8a; --k: #c8b878;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #000; color: #ddd; overflow: hidden;
+    font-family: "B612", system-ui, sans-serif; -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; touch-action: manipulation; }
+  body { display: flex; flex-direction: column; align-items: center;
+    padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom); }
+
+  .bar { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+    padding: 6px 2px; font-size: 13px; }
+  .seat { display: flex; border: 1px solid #444; border-radius: 6px; overflow: hidden; }
+  .seat button { background: #111; color: #aaa; border: 0; padding: 5px 12px; font: inherit; font-weight: 700; }
+  .seat button.on { background: #ddd; color: #000; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #c33; display: inline-block; margin-right: 4px; }
+  .dot.ok { background: #3c3; }
+  .seat { grid-column: 2; flex-shrink: 0; }
+  .seat button { white-space: nowrap; }
+  @media (max-width: 420px) { .st .lbl { display: none; } }
+  .st { grid-column: 3; justify-self: end; display: flex; gap: 12px; color: #999; white-space: nowrap; }
+
+  /* overall CDU sized to fit the viewport (portrait or landscape) */
+  :root { --cdu-w: min(100vw - 16px, (100dvh - 44px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 0.66, 760px); }
+  .cdu { width: var(--cdu-w); flex: 1 1 auto; max-height: calc(var(--cdu-w) / 0.66);
+    background: linear-gradient(var(--bezel-hi), var(--bezel)); border-radius: calc(var(--cdu-w) * 0.025);
+    padding: calc(var(--cdu-w) * 0.03); display: flex; flex-direction: column; gap: calc(var(--cdu-w) * 0.018);
+    container-type: inline-size; }
+
+  .top { display: grid; grid-template-columns: 7.5cqw 1fr 7.5cqw; grid-template-rows: 1.8cqw repeat(14, 1fr) 1.8cqw;   /* outer rows = screen border + padding */
+    column-gap: 2cqw; }
+  .screen { grid-column: 2; grid-row: 1 / -1; background: var(--screen-bg); border: 0.6cqw solid #000;
+    border-radius: 1cqw; padding: 1.2cqw 1.4cqw; display: grid;
+    grid-template-columns: repeat(24, 1fr); grid-template-rows: repeat(14, 1fr);
+    font-family: "B612 Mono", ui-monospace, Menlo, monospace; font-size: 4.25cqw; line-height: 1;
+    aspect-ratio: 24 / 21; container-type: normal; }
+  .screen span { display: flex; align-items: center; justify-content: center; color: var(--w); white-space: pre; }
+  .screen span.s { font-size: 0.78em; }
+  .screen.off span { opacity: 0.25; }
+
+  .lsk { align-self: center; height: 62%; min-height: 0; }
+  .lsk.l { grid-column: 1; } .lsk.r { grid-column: 3; }
+
+  button.k { appearance: none; border: 0; border-radius: 1cqw; background: linear-gradient(var(--key-hi), var(--key));
+    color: var(--key-text); font-family: "B612", system-ui, sans-serif; font-weight: 700;
+    font-size: 2.6cqw; line-height: 1.05; padding: 0; box-shadow: 0 0.5cqw 0 #000, inset 0 0.2cqw 0 #444;
+    touch-action: manipulation; cursor: pointer; }
+  button.k.pressed { transform: translateY(0.4cqw); box-shadow: 0 0.1cqw 0 #000, inset 0 0.2cqw 0 #333;
+    background: #3a3e42; }
+  button.k.alpha { font-size: 3.6cqw; }
+  button.k.lsk::after { content: ""; display: block; width: 60%; height: 0.6cqw; margin: auto; background: #bbb; }
+  button.k.exec { position: relative; }
+  .blank { visibility: hidden; }
+
+  .fn { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.6cqw; height: 18cqw; }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr) 1.5cqw repeat(5, 1fr); grid-template-rows: repeat(6, 1fr);
+    gap: 1.6cqw; flex: 1 1 auto; min-height: 0; }
+  .pad .gap { grid-column: 4; }
+
+  .help { font-size: 11px; color: #666; max-width: var(--cdu-w); text-align: center; padding: 4px 0 2px; }
+  @media (pointer: coarse), (max-height: 760px) { .help { display: none; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="seat"><button data-side="1">CAPT</button><button data-side="2">F/O</button></div>
+  <div class="st">
+    <span title="server"><span id="d-srv" class="dot"></span><span class="lbl">server</span></span>
+    <span title="sim"><span id="d-sim" class="dot"></span><span class="lbl">sim</span></span>
+    <span title="CDU"><span id="d-ac" class="dot"></span><span class="lbl">CDU</span></span>
+  </div>
+</div>
+
+<div class="cdu" id="cdu">
+  <div class="top" id="top"><div class="screen off" id="screen"></div></div>
+  <div class="fn" id="fn"></div>
+  <div class="pad" id="pad"></div>
+</div>
+<div class="help">Keyboard: A–Z 0–9 . / space · <b>-</b> / <b>+</b> = +/− · Backspace = CLR · Delete = DEL · Enter = EXEC ·
+  F1–F6 = left LSK · F7–F12 = right LSK · PgUp/PgDn = PREV/NEXT · Home = MENU</div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- layout
+const FN = [
+  ["INIT", "INIT<br>REF"], ["RTE", "RTE"], ["DEPARR", "DEP<br>ARR"], ["ATC", "ATC"], ["VNAV", "VNAV"], null,
+  ["FIX", "FIX"], ["LEGS", "LEGS"], ["HOLD", "HOLD"], ["FMCCOMM", "FMC<br>COMM"], ["PROG", "PROG"], ["EXEC", "EXEC"],
+];
+const PAD = [
+  [["MENU","MENU"],["NAVRAD","NAV<br>RAD"],null],              "ABCDE",
+  [["PREV","PREV<br>PAGE"],["NEXT","NEXT<br>PAGE"],null],       "FGHIJ",
+  [["NUM1","1"],["NUM2","2"],["NUM3","3"]],                     "KLMNO",
+  [["NUM4","4"],["NUM5","5"],["NUM6","6"]],                     "PQRST",
+  [["NUM7","7"],["NUM8","8"],["NUM9","9"]],                     "UVWXY",
+  [["NUMPER","."],["NUM0","0"],["NUMPLUS","+/−"]],
+    [["KEYZ","Z"],["KEYSP","SP"],["KEYDEL","DEL"],["KEYSLASH","/"],["KEYCLR","CLR"]],
+];
+const btn = {};   // key -> element
+function mk(parent, spec, cls) {
+  const b = document.createElement("button");
+  if (!spec) { b.className = "k blank"; parent.appendChild(b); return b; }
+  b.className = "k " + (cls || "");
+  b.innerHTML = spec[1];
+  b.dataset.k = spec[0];
+  if (spec[0] === "EXEC") b.classList.add("exec");
+  btn[spec[0]] = b;
+  parent.appendChild(b);
+  return b;
+}
+const topEl = document.getElementById("top"), screenEl = document.getElementById("screen");
+for (let i = 1; i <= 6; i++) {
+  for (const side of ["L", "R"]) {
+    const b = mk(topEl, [side + i, ""], "lsk " + side.toLowerCase());
+    // data line i is screen row 2i (0-based) = grid row 2i+2; span the rows above/below it so the key centres on it
+    b.style.gridRow = (2 * i + 1) + " / span 3";
+  }
+}
+const cells = [];
+for (let i = 0; i < 24 * 14; i++) { const s = document.createElement("span"); s.textContent = " "; screenEl.appendChild(s); cells.push(s); }
+const fn = document.getElementById("fn");
+FN.forEach(s => mk(fn, s));
+const pad = document.getElementById("pad");
+for (let r = 0; r < 6; r++) {
+  const left = PAD[r * 2], right = PAD[r * 2 + 1];
+  left.forEach(s => mk(pad, s));
+  const g = document.createElement("div"); g.className = "gap"; pad.appendChild(g);
+  (typeof right === "string" ? [...right].map(c => ["KEY" + c, c]) : right).forEach(s => mk(pad, s, "alpha"));
+}
+
+// ---------------------------------------------------------------- state / socket
+let side = 1;
+try { side = +(new URLSearchParams(location.search).get("side") || localStorage.getItem("cdu-side") || 1); } catch (e) {}
+if (side !== 2) side = 1;
+const screens = {};
+let aircraft = [], ws = null, wsOk = false;
+
+function setSide(s) {
+  side = s;
+  try { localStorage.setItem("cdu-side", String(s)); } catch (e) {}
+  document.querySelectorAll(".seat button").forEach(b => b.classList.toggle("on", +b.dataset.side === s));
+  draw(); dots();
+}
+document.querySelectorAll(".seat button").forEach(b => b.addEventListener("click", () => setSide(+b.dataset.side)));
+
+const prev = new Array(24 * 14).fill("");
+function draw() {
+  const data = screens[side];
+  screenEl.classList.toggle("off", !data || !aircraft.includes(side));
+  for (let i = 0; i < cells.length; i++) {
+    const c = data && data[i];
+    const key = c && c.length ? c.join("|") : "";
+    if (key === prev[i]) continue;
+    prev[i] = key;
+    const el = cells[i];
+    if (!c || !c.length) { el.textContent = " "; el.className = ""; el.style.cssText = ""; continue; }
+    const col = "var(--" + (/^[wcgmaryoek]$/.test(c[1]) ? c[1] : "e") + ")";
+    el.textContent = c[0] || " ";
+    el.className = c[2] ? "s" : "";
+    el.style.cssText = c[3] ? `background:${col};color:#000` : `color:${col}`;
+  }
+}
+function dots() {
+  document.getElementById("d-srv").classList.toggle("ok", wsOk);
+  document.getElementById("d-ac").classList.toggle("ok", aircraft.includes(side));
+}
+function connect() {
+  ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+  ws.onopen = () => { wsOk = true; dots(); };
+  ws.onclose = () => { wsOk = false; aircraft = []; dots(); draw(); setTimeout(connect, 1500); };
+  ws.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if (m.t === "display") { screens[m.side] = m.data; if (m.side === side) draw(); }
+    else if (m.t === "status") {
+      aircraft = m.aircraft; document.getElementById("d-sim").classList.toggle("ok", m.sim);
+      dots(); draw();
+    }
+  };
+}
+function send(k, a) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ side, k, a }));
+}
+
+// ---------------------------------------------------------------- touch / mouse
+document.addEventListener("pointerdown", e => {
+  const b = e.target.closest("button.k[data-k]");
+  if (!b) return;
+  e.preventDefault();
+  b.setPointerCapture(e.pointerId);
+  b.classList.add("pressed");
+  send(b.dataset.k, "down");
+  const up = () => {
+    b.classList.remove("pressed");
+    send(b.dataset.k, "up");
+    b.removeEventListener("pointerup", up); b.removeEventListener("pointercancel", up);
+  };
+  b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up);
+});
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+// ---------------------------------------------------------------- keyboard
+function keyFor(e) {
+  const k = e.key;
+  if (/^[a-z]$/i.test(k)) return "KEY" + k.toUpperCase();
+  if (/^[0-9]$/.test(k)) return "NUM" + k;
+  const fk = /^F([1-9]|1[0-2])$/.exec(k);
+  if (fk) { const n = +fk[1]; return n <= 6 ? "L" + n : "R" + (n - 6); }
+  return ({ ".": "NUMPER", ",": "NUMPER", "-": "NUMPLUS", "/": "KEYSLASH", " ": "KEYSP",
+            "Backspace": "KEYCLR", "Delete": "KEYDEL", "Enter": "EXEC",
+            "PageUp": "PREV", "PageDown": "NEXT", "Home": "MENU" })[k] || null;
+}
+const down = new Map();   // e.code -> key, so keyup matches even if the character changed
+window.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "+") {   // +/- key toggles: first press "-", second "+"
+    e.preventDefault(); if (!e.repeat) { send("NUMPLUS", "tap"); send("NUMPLUS", "tap"); flash("NUMPLUS"); }
+    return;
+  }
+  const k = keyFor(e);
+  if (!k) return;
+  e.preventDefault();
+  if (e.repeat || down.has(e.code)) return;
+  down.set(e.code, k);
+  btn[k] && btn[k].classList.add("pressed");
+  send(k, "down");
+});
+window.addEventListener("keyup", e => {
+  const k = down.get(e.code);
+  if (!k) return;
+  down.delete(e.code);
+  btn[k] && btn[k].classList.remove("pressed");
+  send(k, "up");
+});
+window.addEventListener("blur", () => {
+  for (const k of down.values()) { btn[k] && btn[k].classList.remove("pressed"); send(k, "up"); }
+  down.clear();
+});
+function flash(k) { const b = btn[k]; if (!b) return; b.classList.add("pressed"); setTimeout(() => b.classList.remove("pressed"), 120); }
+
+setSide(side);
+connect();
+</script>
+</body>
+</html>

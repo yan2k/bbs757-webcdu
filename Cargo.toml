@@ -1,0 +1,20 @@
+[package]
+name = "webcdu"
+version = "0.2.0"
+edition = "2021"
+description = "Web CDU for MSFS airliners (BlueBird 757): iPad/browser remote with keyboard input"
+build = "build.rs"
+
+[dependencies]
+axum = { version = "0.8", features = ["ws"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+libloading = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
