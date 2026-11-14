@@ -15,6 +15,8 @@ Left: the route edit waiting to be executed, with EXEC lit.</sub>
 - Works in any modern browser on the same network, with no app to install on the tablet
 - Unzip and run on the sim PC, nothing to install
 
+![The web CDU in a floating window over Navigraph charts on an iPad](docs/screenshots/ipad.jpg)
+
 ## Getting started
 
 1. Download the zip from [Releases](../../releases) and unzip it anywhere. Keep
