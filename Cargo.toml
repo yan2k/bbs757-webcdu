@@ -1,6 +1,6 @@
 [package]
 name = "bbs757-webcdu"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Web CDU for the BlueBird 757 in MSFS: the full CDU on any tablet, phone or browser"
 license = "PolyForm-Noncommercial-1.0.0"
