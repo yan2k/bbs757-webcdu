@@ -1,8 +1,7 @@
 # bbs757-webcdu
 
 A web CDU for the **BlueBird Simulations 757** in Microsoft Flight Simulator. You get the full
-CDU (live screen and every key) on a tablet, phone or any browser, and you can type into it
-with a keyboard.
+CDU (live screen and every key) on a tablet, phone or any browser.
 
 It's a single `bbs757-webcdu.exe`. The web page, fonts and `SimConnect.dll` are built in,
 and there's nothing else to install.
@@ -18,25 +17,13 @@ and there's nothing else to install.
 
 The status dots at the top show the connections:
 
-| dot    | green means                                                                  |
-|--------|------------------------------------------------------------------------------|
-| server | the page is connected to bbs757-webcdu                                              |
-| sim    | bbs757-webcdu is connected to MSFS through SimConnect (needed for key presses)      |
-| CDU    | the 757 is sending this seat's screen (CAPT and F/O are separate)            |
+| dot    | green means                                                             |
+|--------|-------------------------------------------------------------------------|
+| server | the page is connected to the app                                        |
+| sim    | the app is connected to MSFS through SimConnect (needed for key presses) |
+| CDU    | the 757 is sending this seat's screen (CAPT and F/O are separate)       |
 
 If **CDU** is green but **sim** is red, the screen updates but key presses go nowhere.
-
-### Keyboard
-
-| key                        | CDU key            |
-|----------------------------|--------------------|
-| A–Z, 0–9, `.` `/` space    | same               |
-| `-`                        | +/− (once)         |
-| `+`                        | +/− (twice)        |
-| Backspace / Delete         | CLR / DEL          |
-| Enter                      | EXEC               |
-| F1–F6 / F7–F12             | left / right LSK 1–6 |
-| PgUp / PgDn / Home         | PREV / NEXT / MENU |
 
 ## How it works
 
@@ -44,26 +31,19 @@ If **CDU** is green but **sim** is red, the screen updates but key presses go no
   It connects as a websocket client to `ws://127.0.0.1:8320/winwing/cdu-captain` (and
   `cdu-co-pilot`), then pushes every screen update as JSON:
   `{"Target":"Display","Data":[ 14×24 cells of [char, colour, small, inverted] ]}`.
-  bbs757-webcdu takes MobiFlight's place on that port and passes the frames on to the web page.
+  The app takes MobiFlight's place on that port and passes the frames on to the web page.
 - **Keys:** each CDU key is an L-var, `L:B757_CDU_<1|2>_<KEY>`, which is 1 while the key is
-  held and 0 when it's released. bbs757-webcdu writes these through SimConnect, one key at a time
+  held and 0 when it's released. The app writes these through SimConnect, one key at a time
   per CDU, with a minimum hold of 80 ms. The 757 only registers one held key per frame, so
   presses that overlap would be dropped.
 
 ## Building
 
-Builds are cross-compiled from Linux with MinGW-w64, and CI does the same
-(`.github/workflows/build.yml`). Pushing a `v*` tag publishes a GitHub release with the exe.
+See [`.github/workflows/build.yml`](.github/workflows/build.yml). Pushing a `v*` tag publishes
+a GitHub release with the exe.
 
-```sh
-rustup target add x86_64-pc-windows-gnu
-# plus the MinGW-w64 gcc package for your distro (Debian/Ubuntu: gcc-mingw-w64-x86-64)
-scripts/fetch-simconnect.sh            # SimConnect.dll -> vendor/ (pinned SHA-256)
-cargo build --release --target x86_64-pc-windows-gnu
-```
-
-`SimConnect.dll` comes from the MSFS SDK (via the `SimConnect` package on PyPI) and is not
-committed to this repo. If a `SimConnect.dll` sits next to `bbs757-webcdu.exe`, that copy is used
+`SimConnect.dll` isn't committed to this repo. `scripts/fetch-simconnect.sh` downloads it
+before the build. If a `SimConnect.dll` sits next to `bbs757-webcdu.exe`, that copy is used
 instead of the built-in one.
 
 ## Credits
@@ -73,7 +53,7 @@ instead of the built-in one.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE). You're free to use, modify and share bbs757-webcdu for any
-noncommercial purpose. Forks are welcome. Streaming or recording while you use it is
+[PolyForm Noncommercial 1.0.0](LICENSE). You're free to use, modify and share bbs757-webcdu
+for any noncommercial purpose. Forks are welcome. Streaming or recording while you use it is
 explicitly fine, including monetized streams. Selling it, or putting it into a commercial
 product or service, is not allowed without permission.
