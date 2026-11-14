@@ -321,6 +321,28 @@ async fn font_bold() -> impl IntoResponse {
     )
 }
 
+/// The PC's address on the local network: the source address the OS would use for the
+/// default route. (UDP "connect" sends nothing; it only picks a route.)
+fn lan_ip() -> Option<std::net::IpAddr> {
+    let s = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    s.connect("192.0.2.1:9").ok()?;
+    let ip = s.local_addr().ok()?.ip();
+    (!ip.is_unspecified() && !ip.is_loopback()).then_some(ip)
+}
+
+#[cfg(windows)]
+fn set_console_title(title: &str) {
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn SetConsoleTitleW(title: *const u16) -> i32;
+    }
+    let wide: Vec<u16> = title.encode_utf16().chain(std::iter::once(0)).collect();
+    unsafe { SetConsoleTitleW(wide.as_ptr()) };
+}
+
+#[cfg(not(windows))]
+fn set_console_title(_title: &str) {}
+
 fn fail(msg: String) -> ! {
     eprintln!("\nERROR: {msg}\n\nPress Enter to exit.");
     let _ = std::io::stdin().read_line(&mut String::new());
@@ -333,7 +355,9 @@ async fn main() {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(DEFAULT_WEB_PORT);
+    set_console_title("bbs757-webcdu");
     println!("bbs757-webcdu v{}", env!("CARGO_PKG_VERSION"));
+    println!("Keep this window open while you fly.\n");
 
     let sim = Arc::new(AtomicBool::new(false));
     let (sc_tx, sc_rx) = std_mpsc::channel();
@@ -402,7 +426,12 @@ async fn main() {
     let web_l = tokio::net::TcpListener::bind(web_addr)
         .await
         .unwrap_or_else(|e| fail(format!("cannot listen on {web_addr} ({e}).")));
-    println!("aircraft hub on {AIRCRAFT_ADDR}, web CDU on http://{web_addr}/");
+    println!("Open this on your tablet, phone or other PC:");
+    match lan_ip() {
+        Some(ip) => println!("  http://{ip}:{web_port}\n"),
+        None => println!("  http://<this-pc-ip>:{web_port}\n"),
+    }
+    println!("Waiting for MSFS and the 757...");
 
     let a = tokio::spawn(async move { axum::serve(air_l, air).await });
     let w = tokio::spawn(async move { axum::serve(web_l, page).await });
