@@ -24,7 +24,9 @@ Left: the route edit waiting to be executed, with EXEC lit.</sub>
    (Prefer a single file? `bbs757-webcdu-<version>-aio.exe` has `SimConnect.dll` built in.
    Some virus scanners flag it because it unpacks the DLL at startup; the zip version
    avoids that.)
-2. Close MobiFlight if it's running, because both use port 8320.
+2. If you use a WinWing PFP or another hardware CDU with MobiFlight, unplug it or close
+   MobiFlight. The 757 sends its CDU screen to port 8320, and only one app can use it.
+   Other MobiFlight hardware, like the PAP, should be fine.
 3. Start `bbs757-webcdu.exe` on the sim PC, then load the 757. A console window opens; **keep
    it open while you fly**.
 4. On your tablet, phone or second PC, open the address shown in the window.
